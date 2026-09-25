@@ -1,0 +1,46 @@
+# Reference copy. `vpsmcp setup` writes the installed unit (src/vpsmcp/setup.py,
+# _systemd_unit); keep the two in sync.
+[Unit]
+Description=VPS Fleet MCP Gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=vpsmcp
+Group=vpsmcp
+EnvironmentFile=/etc/vpsmcp/vpsmcp.env
+WorkingDirectory=/opt/vpsmcp
+ExecStart=/opt/vpsmcp/.venv/bin/python -m vpsmcp serve
+Restart=always
+RestartSec=3
+
+# Sandbox: limit what a compromised gateway process can reach
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+CapabilityBoundingSet=
+ReadWritePaths=/var/lib/vpsmcp /etc/vpsmcp/hosts.d
+ReadOnlyPaths=/etc/vpsmcp
+UMask=0077
+
+LimitNOFILE=8192
+# cap memory so a runaway log buffer cannot take the host down
+MemoryMax=512M
+
+[Install]
+WantedBy=multi-user.target

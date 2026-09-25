@@ -1,0 +1,29 @@
+# /etc/vpsmcp/hosts.yaml
+#
+# Hand-written entries only. Enrolled nodes are written to hosts.d/<node_id>.yaml
+# by the service; both files are loaded together and hot-reloaded on change.
+#
+# Identity is node_id (address:port:user). Aliases are labels and may repeat.
+
+defaults:
+  user: ops
+  port: 22
+  scopes: [fleet.read, fleet.exec, fleet.write]
+  env:
+    LANG: C.UTF-8
+    TERM: dumb
+
+hosts: []
+
+# Example of a manual entry:
+#
+#  - alias: db-internal
+#    address: 10.0.0.15
+#    user: dba
+#    jump: sg-app-1          # reach it through another host in the inventory
+#    tags: [prod, db]
+#    scopes: [fleet.read]    # read-only
+#    host_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA..."
+#    sudo: false
+#    workdir: /srv
+#    notes: "PostgreSQL primary"

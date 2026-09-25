@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# /usr/local/bin/vpsmcp - always run as the service account so file permissions
+# behave the same as they do for the daemon. `setup`, `set-password` and
+# `proxy-password` are the exceptions: they write root-owned /etc/vpsmcp, so root.
+case "${1:-}" in setup|set-password|proxy-password) exec /opt/vpsmcp/.venv/bin/python -m vpsmcp "$@" ;; esac
+exec sudo -u vpsmcp /opt/vpsmcp/.venv/bin/python -m vpsmcp "$@"

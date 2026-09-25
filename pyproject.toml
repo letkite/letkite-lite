@@ -1,0 +1,29 @@
+[project]
+name = "vpsmcp"
+version = "1.0"
+description = "letkite-lite - a fleet of VPS hosts as one remote MCP service for Claude, Kimi or GLM"
+authors = [{ name = "letkite", email = "git@letkite.com" }]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp>=2.11",
+    "asyncssh>=2.14",
+    "PyJWT>=2.8",
+    "cryptography>=42",
+    "PyYAML>=6",
+    "httpx>=0.27",
+    "uvicorn[standard]>=0.30",
+    "starlette>=0.37",
+    "pydantic>=2.7",
+]
+
+[project.scripts]
+vpsmcp = "vpsmcp.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/vpsmcp"]

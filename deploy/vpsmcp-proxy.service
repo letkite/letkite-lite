@@ -1,0 +1,40 @@
+[Unit]
+# Optional egress forward proxy for fleet nodes. Reference copy; `vpsmcp setup`
+# writes this to /etc/systemd/system/vpsmcp-proxy.service. It is NOT enabled by
+# default - set a credential first, then enable it:
+#   sudo vpsmcp proxy-password
+#   sudo systemctl enable --now vpsmcp-proxy
+Description=VPS Fleet MCP egress proxy
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=vpsmcp
+Group=vpsmcp
+EnvironmentFile=/etc/vpsmcp/vpsmcp.env
+WorkingDirectory=/opt/vpsmcp
+ExecStart=/opt/vpsmcp/.venv/bin/python -m vpsmcp proxy
+Restart=always
+RestartSec=3
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+CapabilityBoundingSet=
+ReadOnlyPaths=/etc/vpsmcp
+UMask=0077
+LimitNOFILE=8192
+MemoryMax=256M
+
+[Install]
+WantedBy=multi-user.target
