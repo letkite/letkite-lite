@@ -126,7 +126,9 @@ sudo vpsmcp grants                                 # 谁手上有活的令牌
 sudo vpsmcp revoke <client_id>
 ```
 
-别名允许重名。身份是 `node_id`（address:port:user 的哈希），重名时传它。
+别名允许重名。身份是 `node_id`（address:port:user 的哈希），重名时传它。手写在
+`hosts.yaml` 里的条目可以用 `node_id: n_...`（`vpsmcp nodes` 里的当前值）把它固定下来，
+地址变了（比如从公网 IP 换成 VPN 地址）也不变。
 
 ## 更新
 

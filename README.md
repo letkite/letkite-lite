@@ -154,7 +154,9 @@ sudo vpsmcp revoke <client_id>
 ```
 
 Aliases may repeat. Identity is `node_id` (hash of address:port:user); pass it
-when an alias is ambiguous.
+when an alias is ambiguous. A hand-written `hosts.yaml` entry can pin it with
+`node_id: n_...` (the current id from `vpsmcp nodes`) so it survives an address
+change, such as moving a host from its public IP to a VPN address.
 
 ## Upgrade
 
