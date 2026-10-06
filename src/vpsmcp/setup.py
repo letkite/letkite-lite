@@ -309,7 +309,10 @@ def run(argv: list[str]) -> int:
     bind_host, bind_port = "127.0.0.1", opt("--port", "8848")
 
     # ---- password ----
-    password = opt("--password")
+    # VPSMCP_SETUP_PASSWORD is the unattended form: --password shows up in ps.
+    # Popped so the commands setup runs do not inherit it.
+    env_password = os.environ.pop("VPSMCP_SETUP_PASSWORD", "")
+    password = opt("--password") or env_password
     generated = False
     if not password and tty:
         password = prompt_admin_password()
@@ -404,7 +407,7 @@ def run(argv: list[str]) -> int:
     if password:
         env["VPSMCP_ADMIN_PASSWORD_HASH"] = hash_password(password)
     if not env["VPSMCP_ADMIN_PASSWORD_HASH"]:
-        bad("no password hash; pass --password")
+        bad("no password hash; pass --password or set VPSMCP_SETUP_PASSWORD")
         return 2
     write_env(env)
     ok(f"wrote {ENVFILE}")

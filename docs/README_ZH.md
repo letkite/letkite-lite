@@ -26,6 +26,14 @@ sudo deploy/install.sh
 sudo deploy/install.sh --domain mcp.example.com -y [--self-enroll] [--lock-anthropic]
 ```
 
+全自动时要指定管理员口令，用环境变量 `VPSMCP_SETUP_PASSWORD`，不要用 `--password`：
+后者在 setup 运行期间本机其他用户用 `ps` 就能看到。
+
+```bash
+read -rsp '管理员口令: ' VPSMCP_SETUP_PASSWORD && export VPSMCP_SETUP_PASSWORD
+sudo --preserve-env=VPSMCP_SETUP_PASSWORD deploy/install.sh --domain mcp.example.com -y
+```
+
 ## 2. 接入客户端
 
 所有客户端都填同一个 URL，就是安装器打印的那个：
