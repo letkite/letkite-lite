@@ -6,6 +6,7 @@
 #
 # setup flags: --domain --admin-user --password --email --port --mcp-path
 #              --self-enroll --lock-anthropic --allow-cidr <cidr> --no-caddy -y
+# VPSMCP_SETUP_PASSWORD in the environment works like --password but stays out of ps.
 set -euo pipefail
 
 # Re-exec under sudo so setup can read SUDO_USER for the default admin name.

@@ -1,6 +1,7 @@
 """Host inventory.
 
 Identity is node_id (address:port:user); alias is a display label and may repeat.
+A host may set node_id explicitly so it survives an address change.
 hosts.yaml is hand-maintained; hosts.d/<node_id>.yaml is written by enrollment.
 """
 from __future__ import annotations
@@ -15,6 +16,7 @@ from typing import Any
 import yaml
 
 _ALIAS_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$")
+_NODE_ID_RE = re.compile(r"^n_[0-9a-f]{10,32}$")
 
 
 class InventoryError(RuntimeError):
@@ -36,9 +38,12 @@ class Host:
     sudo: bool = False
     jump: str | None = None
     notes: str = ""
+    fixed_id: str | None = None      # explicit node_id from the inventory
 
     @property
     def node_id(self) -> str:
+        if self.fixed_id:
+            return self.fixed_id
         raw = f"{self.address}:{self.port}:{self.user}".lower()
         return "n_" + hashlib.sha256(raw.encode()).hexdigest()[:10]
 
@@ -133,6 +138,8 @@ def load_inventory(path: Path) -> Inventory:
         address = str(merged.get("address") or "").strip()
         if not address:
             raise InventoryError(f"{alias}: missing address")
+        # per host only, never from defaults: a shared id would merge hosts
+        fixed_id = _node_id(item.get("node_id"), alias)
         h = Host(
             alias=alias,
             address=address,
@@ -148,6 +155,7 @@ def load_inventory(path: Path) -> Inventory:
             sudo=bool(merged.get("sudo", False)),
             jump=merged.get("jump"),
             notes=str(merged.get("notes") or ""),
+            fixed_id=fixed_id,
         )
         hosts[h.node_id] = h          # re-registering the same machine overwrites
 
@@ -186,6 +194,16 @@ def valid_host_key(value: str) -> bool:
     return 4 + n <= len(raw) and raw[4:4 + n].decode("ascii", "replace") == parts[0]
 
 
+def _node_id(value: Any, alias: str) -> str | None:
+    """An explicit node_id, checked against the format computed ids follow."""
+    if value is None or value == "":
+        return None
+    nid = str(value).strip()
+    if not _NODE_ID_RE.match(nid):
+        raise InventoryError(f"{alias}: invalid node_id {nid!r}; expected n_ + 10-32 hex digits")
+    return nid
+
+
 def node_id_of(address: str, port: int, user: str) -> str:
     return "n_" + hashlib.sha256(f"{address}:{port}:{user}".lower().encode()).hexdigest()[:10]
 
@@ -195,8 +213,8 @@ def write_host(path: Path, host: dict) -> Path:
     alias = str(host.get("alias") or "")
     if not _ALIAS_RE.match(alias):
         raise InventoryError(f"invalid alias {alias!r}")
-    nid = node_id_of(str(host["address"]), int(host.get("port") or 22),
-                     str(host.get("user") or "ops"))
+    nid = _node_id(host.get("node_id"), alias) or node_id_of(
+        str(host["address"]), int(host.get("port") or 22), str(host.get("user") or "ops"))
     d = hosts_d(path)
     try:
         d.mkdir(parents=True, exist_ok=True)

@@ -11,6 +11,7 @@ public key. No code, no private keys, no certificates.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import ipaddress
 import re
 import sys
@@ -221,7 +222,7 @@ if [[ "$MODE" == uninstall ]]; then
   log "removing $NODE_USER"
   if id -u "$NODE_USER" >/dev/null 2>&1; then
     HOME_DIR=$(getent passwd "$NODE_USER" | cut -d: -f6)
-    GW=$(curl -sSf "$BASE/enroll/pubkey" 2>/dev/null || echo "")
+    GW=$(curl -sSf ${KEY:+-H "x-enroll-key: $KEY"} "$BASE/enroll/pubkey" 2>/dev/null || echo "")
     f="$HOME_DIR/.ssh/authorized_keys"
     if [[ -f "$f" && -n "$GW" ]]; then
       kp=$(printf '%s' "$GW" | awk '{print $2}')
@@ -271,7 +272,9 @@ else
 fi
 
 # account
-GW_PUBKEY=$(curl -sSf "$BASE/enroll/pubkey" 2>/dev/null) || die "cannot reach the service" 4
+# /enroll/pubkey sits behind the same gate as register, so it needs the key too
+GW_PUBKEY=$(curl -sSf ${KEY:+-H "x-enroll-key: $KEY"} "$BASE/enroll/pubkey" 2>/dev/null) \
+  || die "cannot reach the service" 4
 [[ "$GW_PUBKEY" == ssh-* ]] || die "unexpected response from the service" 4
 
 if [[ $ROOTLESS -eq 0 ]]; then
@@ -380,15 +383,17 @@ exit 0
 
 UNINSTALL_SH = r'''#!/usr/bin/env bash
 # Detach this machine. No token needed: it only touches local state.
-#   curl -sSf <base>/enroll/uninstall.sh | sudo bash -s -- --user ops [--purge]
+#   curl -sSf <base>/enroll/uninstall.sh | sudo bash -s -- --user __DEFUSER__ [--purge]
 set -euo pipefail
-NODE_USER="ops"; PURGE=0
+NODE_USER="__DEFUSER__"; PURGE=0
 while [[ $# -gt 0 ]]; do case "$1" in
   --user) NODE_USER="$2"; shift 2 ;;
   --purge) PURGE=1; shift ;;
   *) shift ;;
 esac; done
 [[ $EUID -eq 0 ]] || { echo "root required" >&2; exit 1; }
+# with VPSMCP_ENROLL_USER=@session each node has its own account; name it
+[[ "$NODE_USER" != "@session" ]] || { echo "pass --user NAME" >&2; exit 1; }
 id -u "$NODE_USER" >/dev/null 2>&1 || exit 0
 HOME_DIR=$(getent passwd "$NODE_USER" | cut -d: -f6)
 
@@ -471,7 +476,8 @@ class EnrollService:
             except ValueError:
                 return ("E_NOT_ALLOWED", "unrecognised source address")
         if self.s.enroll_key:
-            if request.headers.get("x-enroll-key", "") != self.s.enroll_key:
+            got = request.headers.get("x-enroll-key", "").encode()
+            if not hmac.compare_digest(got, self.s.enroll_key.encode()):
                 self.store.failed(ip)
                 return ("E_KEY", "invalid enrollment key")
         return None
@@ -499,8 +505,9 @@ class EnrollService:
             pub = self._pubkey()
         except FileNotFoundError:
             pub = ""
-        return PlainTextResponse(UNINSTALL_SH.replace("__PUBKEY__", pub),
-                                 media_type="text/x-shellscript")
+        # the default account follows VPSMCP_ENROLL_USER
+        script = UNINSTALL_SH.replace("__PUBKEY__", pub).replace("__DEFUSER__", self.s.enroll_user)
+        return PlainTextResponse(script, media_type="text/x-shellscript")
 
     async def register(self, request: Request) -> JSONResponse:
         ip = self._ip(request)

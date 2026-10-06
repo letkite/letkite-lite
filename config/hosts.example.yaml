@@ -4,6 +4,8 @@
 # by the service; both files are loaded together and hot-reloaded on change.
 #
 # Identity is node_id (address:port:user). Aliases are labels and may repeat.
+# A hand-written entry may set node_id itself (n_ + 10-32 hex digits) so the id
+# survives an address change, e.g. moving from a public IP to a VPN address.
 
 defaults:
   user: ops
@@ -19,6 +21,7 @@ hosts: []
 #
 #  - alias: db-internal
 #    address: 10.0.0.15
+#    node_id: n_3f9a1c07b2       # optional: keep this id when the address changes
 #    user: dba
 #    jump: sg-app-1          # reach it through another host in the inventory
 #    tags: [prod, db]

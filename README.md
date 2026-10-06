@@ -32,6 +32,14 @@ Unattended:
 sudo deploy/install.sh --domain mcp.example.com -y [--self-enroll] [--lock-anthropic]
 ```
 
+To set the admin password unattended, pass it in `VPSMCP_SETUP_PASSWORD` rather
+than `--password`, which other local users can read from `ps` while setup runs:
+
+```bash
+read -rsp 'admin password: ' VPSMCP_SETUP_PASSWORD && export VPSMCP_SETUP_PASSWORD
+sudo --preserve-env=VPSMCP_SETUP_PASSWORD deploy/install.sh --domain mcp.example.com -y
+```
+
 ## 2. Connect a client
 
 One URL, the one the installer printed, for every client:
@@ -154,7 +162,9 @@ sudo vpsmcp revoke <client_id>
 ```
 
 Aliases may repeat. Identity is `node_id` (hash of address:port:user); pass it
-when an alias is ambiguous.
+when an alias is ambiguous. A hand-written `hosts.yaml` entry can pin it with
+`node_id: n_...` (the current id from `vpsmcp nodes`) so it survives an address
+change, such as moving a host from its public IP to a VPN address.
 
 ## Upgrade
 

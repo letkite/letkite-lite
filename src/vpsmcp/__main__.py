@@ -373,7 +373,7 @@ def cmd_node(argv: list[str]) -> int:
         write_host(st.inventory_path, {
             "alias": h.alias, "address": h.address, "port": h.port, "user": h.user,
             "host_key": h.host_key, "tags": list(h.tags), "scopes": scopes,
-            "sudo": h.sudo, "notes": h.notes})
+            "sudo": h.sudo, "notes": h.notes, "node_id": h.fixed_id})
         print(f"{h.label} scopes -> {', '.join(scopes)}")
         return 0
 
@@ -382,7 +382,7 @@ def cmd_node(argv: list[str]) -> int:
         write_host(st.inventory_path, {
             "alias": args[1], "address": h.address, "port": h.port, "user": h.user,
             "host_key": h.host_key, "tags": list(h.tags), "scopes": list(h.scopes),
-            "sudo": h.sudo, "notes": h.notes})
+            "sudo": h.sudo, "notes": h.notes, "node_id": h.fixed_id})
         print(f"{h.node_id} alias {h.alias} -> {args[1]}")
         return 0
 
@@ -391,7 +391,8 @@ def cmd_node(argv: list[str]) -> int:
         write_host(st.inventory_path, {
             "alias": h.alias, "address": h.address, "port": h.port, "user": h.user,
             "host_key": h.host_key, "tags": [x for x in args[1].split(",") if x],
-            "scopes": list(h.scopes), "sudo": h.sudo, "notes": h.notes})
+            "scopes": list(h.scopes), "sudo": h.sudo, "notes": h.notes,
+            "node_id": h.fixed_id})
         print(f"{h.label} tags -> {args[1]}")
         return 0
 

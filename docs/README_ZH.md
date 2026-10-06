@@ -26,6 +26,14 @@ sudo deploy/install.sh
 sudo deploy/install.sh --domain mcp.example.com -y [--self-enroll] [--lock-anthropic]
 ```
 
+全自动时要指定管理员口令，用环境变量 `VPSMCP_SETUP_PASSWORD`，不要用 `--password`：
+后者在 setup 运行期间本机其他用户用 `ps` 就能看到。
+
+```bash
+read -rsp '管理员口令: ' VPSMCP_SETUP_PASSWORD && export VPSMCP_SETUP_PASSWORD
+sudo --preserve-env=VPSMCP_SETUP_PASSWORD deploy/install.sh --domain mcp.example.com -y
+```
+
 ## 2. 接入客户端
 
 所有客户端都填同一个 URL，就是安装器打印的那个：
@@ -126,7 +134,9 @@ sudo vpsmcp grants                                 # 谁手上有活的令牌
 sudo vpsmcp revoke <client_id>
 ```
 
-别名允许重名。身份是 `node_id`（address:port:user 的哈希），重名时传它。
+别名允许重名。身份是 `node_id`（address:port:user 的哈希），重名时传它。手写在
+`hosts.yaml` 里的条目可以用 `node_id: n_...`（`vpsmcp nodes` 里的当前值）把它固定下来，
+地址变了（比如从公网 IP 换成 VPN 地址）也不变。
 
 ## 更新
 

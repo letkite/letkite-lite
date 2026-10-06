@@ -121,4 +121,50 @@ if bash:
 else:
     print("5. --proxy wiring present (bash absent; skipped behaviour run)")
 
+# 6. /enroll/pubkey is behind the same gate as register: every fetch of it sends
+#    the -k key, or enrollment and --uninstall get a 403 whenever a key is set
+import re  # noqa: E402
+
+fetches = re.findall(r'\$\((curl [^)]*/enroll/pubkey[^)]*)\)', rendered)
+assert len(fetches) == 2, fetches                   # install and --uninstall
+for cmd in fetches:
+    assert '${KEY:+-H "x-enroll-key: $KEY"}' in cmd, cmd
+if bash:
+    def curl_args(cmd, key):
+        stub = ('curl() { printf "[%s]\\n" "$@"; }\n'
+                f'BASE=http://gw.example; KEY={key!r}\n' + cmd)
+        return subprocess.run([bash, "-c", stub], capture_output=True, text=True).stdout
+    for cmd in fetches:
+        out = curl_args(cmd, "s3cret key")
+        assert "[-H]\n[x-enroll-key: s3cret key]" in out, out
+        out = curl_args(cmd, "")
+        assert "x-enroll-key" not in out and "[-H]" not in out, out
+    print("6. both /enroll/pubkey fetches send x-enroll-key when -k is given, nothing otherwise")
+else:
+    print("6. /enroll/pubkey fetches carry the key header (bash absent; skipped behaviour run)")
+
+# 7. uninstall.sh defaults to the configured enroll user, not a hardcoded "ops"
+import asyncio  # noqa: E402
+from types import SimpleNamespace  # noqa: E402
+
+from vpsmcp.enroll import UNINSTALL_SH, EnrollService  # noqa: E402
+
+assert 'NODE_USER="__DEFUSER__"' in UNINSTALL_SH
+assert 'NODE_USER="ops"' not in UNINSTALL_SH
+keydir = Path(tempfile.mkdtemp())
+(keydir / "id_ed25519.pub").write_text("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExample vpsmcp-gateway\n")
+svc = EnrollService(SimpleNamespace(ssh_key_path=keydir / "id_ed25519", enroll_user="gwops"),
+                    None, None, None, None)
+served = asyncio.run(svc.get_uninstall(None)).body.decode()
+assert "__DEFUSER__" not in served and "__PUBKEY__" not in served
+assert 'NODE_USER="gwops"' in served, served[:400]
+assert 'GW_PUBKEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExample vpsmcp-gateway"' in served
+if bash:
+    with tempfile.NamedTemporaryFile("w", suffix=".sh", delete=False) as f:
+        f.write(served)
+        path = f.name
+    r = subprocess.run([bash, "-n", path], capture_output=True, text=True)
+    assert r.returncode == 0, f"bash -n failed: {r.stderr}"
+print("7. uninstall.sh is served with the configured enroll user and passes bash -n")
+
 print("\nall enroll-script checks passed")
