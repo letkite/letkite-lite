@@ -11,6 +11,7 @@ public key. No code, no private keys, no certificates.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import ipaddress
 import re
 import sys
@@ -475,7 +476,8 @@ class EnrollService:
             except ValueError:
                 return ("E_NOT_ALLOWED", "unrecognised source address")
         if self.s.enroll_key:
-            if request.headers.get("x-enroll-key", "") != self.s.enroll_key:
+            got = request.headers.get("x-enroll-key", "").encode()
+            if not hmac.compare_digest(got, self.s.enroll_key.encode()):
                 self.store.failed(ip)
                 return ("E_KEY", "invalid enrollment key")
         return None
