@@ -57,6 +57,7 @@ if [[ $ROLLBACK -eq 1 ]]; then
   systemctl stop vpsmcp 2>/dev/null || true
   rm -rf "$APP/src"; cp -a "$last/src" "$APP/src"
   cp -a "$last/pyproject.toml" "$APP/pyproject.toml" 2>/dev/null || true
+  cp -a "$last/README.md" "$APP/README.md" 2>/dev/null || true
   "$VENV/bin/pip" install "${PIP_Q[@]}" --force-reinstall --no-deps "$APP"
   chown -R vpsmcp:vpsmcp "$APP"
   systemctl start vpsmcp 2>/dev/null || true
@@ -78,6 +79,7 @@ install -d -m 700 "$APP/.rollback"
 mkdir -p "$BAK"
 cp -a "$APP/src" "$BAK/src" 2>/dev/null || true
 cp -a "$APP/pyproject.toml" "$BAK/" 2>/dev/null || true
+cp -a "$APP/README.md" "$BAK/" 2>/dev/null || true
 echo "==> backed up current code to $BAK"
 ls -1d "$APP"/.rollback/* 2>/dev/null | sort | head -n -3 | xargs -r rm -rf
 
@@ -89,6 +91,8 @@ echo "==> installing"
 rm -rf "$APP/src"
 cp -a "$SRC/src" "$APP/src"
 cp -a "$SRC/pyproject.toml" "$APP/pyproject.toml"
+# pyproject.toml names README.md as the readme; hatchling refuses to build without it
+cp -a "$SRC/README.md" "$APP/README.md"
 if [[ $FAST -eq 1 ]]; then
   "$VENV/bin/pip" install "${PIP_Q[@]}" --force-reinstall --no-deps "$APP"
 else

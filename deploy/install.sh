@@ -29,6 +29,8 @@ echo "==> package"
 rm -rf "$APP/src"
 cp -a "$SRC/src" "$APP/src"
 cp -a "$SRC/pyproject.toml" "$APP/pyproject.toml"
+# pyproject.toml names README.md as the readme; hatchling refuses to build without it
+cp -a "$SRC/README.md" "$APP/README.md"
 [[ -x "$APP/.venv/bin/python" ]] || python3 -m venv "$APP/.venv"
 "$APP/.venv/bin/pip" install -q --disable-pip-version-check --upgrade pip >/dev/null
 "$APP/.venv/bin/pip" install -q --disable-pip-version-check --upgrade "$APP"
