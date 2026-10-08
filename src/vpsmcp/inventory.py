@@ -157,6 +157,12 @@ def load_inventory(path: Path) -> Inventory:
             notes=str(merged.get("notes") or ""),
             fixed_id=fixed_id,
         )
+        prev = hosts.get(h.node_id)
+        if prev is not None and prev.fixed_id and fixed_id and (
+                (prev.address, prev.port, prev.user) != (h.address, h.port, h.user)):
+            # two hand-written node_ids for different machines: the later one
+            # would silently replace the other host
+            raise InventoryError(f"{alias}: node_id {fixed_id} is already {prev.label}'s")
         hosts[h.node_id] = h          # re-registering the same machine overwrites
 
     for h in hosts.values():
