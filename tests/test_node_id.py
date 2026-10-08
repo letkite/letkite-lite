@@ -62,4 +62,21 @@ target = write_host(inv_path, {"alias": "web-2", "address": "10.8.0.9", "user": 
 assert target.name == f"{node_id_of('10.8.0.9', 22, 'ops')}.yaml", target
 print("4. write_host names the file after the explicit id, computed id otherwise")
 
+# 5. the same explicit id on two different machines is refused, naming both; the
+#    same machine listed twice still overwrites
+try:
+    load(f"defaults: {{user: ops}}\nhosts:\n"
+         f"  - {{alias: web-1, address: 10.8.0.2, node_id: {old}}}\n"
+         f"  - {{alias: db-1, address: 10.8.0.3, node_id: {old}}}\n")
+except InventoryError as exc:
+    assert "db-1" in str(exc) and "web-1" in str(exc) and old in str(exc), exc
+else:
+    raise AssertionError("accepted one node_id for two machines")
+inv = load(f"defaults: {{user: ops}}\nhosts:\n"
+           f"  - {{alias: web-1, address: 10.8.0.2, node_id: {old}}}\n"
+           f"  - {{alias: web-1b, address: 10.8.0.2, node_id: {old}}}\n")
+assert inv.hosts[old].alias == "web-1b" and \
+    all(h.alias != "web-1" for h in inv.hosts.values()), inv.hosts
+print("5. one explicit node_id on two machines is refused; the same machine twice overwrites")
+
 print("\nall node-id checks passed")
