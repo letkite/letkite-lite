@@ -1,0 +1,27 @@
+# Dependabot: version updates weekly (Monday 09:00 Singapore), minor and patch grouped per
+# ecosystem, majors one PR each. Security updates (vulnerable dependencies) come on their own,
+# any day. Set up 2026-11-07 (the owner: security scanning across the repositories).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Singapore
+    open-pull-requests-limit: 5
+    groups:
+      github_actions_minor_patch:
+        update-types: [minor, patch]
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Singapore
+    open-pull-requests-limit: 5
+    groups:
+      pip_minor_patch:
+        update-types: [minor, patch]
