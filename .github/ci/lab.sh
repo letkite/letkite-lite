@@ -11,6 +11,10 @@ mkdir -p /run/sshd 2>/dev/null || sudo mkdir -p /run/sshd
 ssh-keygen -q -t ed25519 -N '' -f "$D/host_ed25519"
 ssh-keygen -q -t ed25519 -N '' -f "$D/client_key"
 mkdir -p "$H/.ssh" && cat "$D/client_key.pub" >> "$H/.ssh/authorized_keys" && chmod 600 "$H/.ssh/authorized_keys"
+# A locked password ("!" in shadow, as on GitHub's runner) makes sshd without PAM refuse
+# even key logins; with PAM the key is enough
+PAM=no
+[[ "$(sudo -n passwd -S "$U" 2>/dev/null | awk '{print $2}')" == L ]] && PAM=yes
 cat > "$D/sshd_config" <<CFG
 Port 2222
 ListenAddress 127.0.0.1
@@ -21,7 +25,7 @@ PubkeyAuthentication yes
 PasswordAuthentication no
 AuthorizedKeysFile $H/.ssh/authorized_keys
 Subsystem sftp /usr/lib/openssh/sftp-server
-UsePAM no
+UsePAM $PAM
 StrictModes no
 CFG
 SUDO=""; [[ $EUID -ne 0 ]] && SUDO=sudo
