@@ -1,0 +1,66 @@
+name: ci
+
+# On GitHub's runner (2026-11-07, the owner: use the Actions minutes). unit: the
+# tests that need no server; lab: the end-to-end lab of tests/README.md (a local
+# sshd and the gateway, .github/ci/lab.sh).
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - run: pip install -e .
+      - name: Tests that need no server
+        env:
+          PYTHONPATH: src
+        run: |
+          fail=0
+          for t in copy_size_cap enroll_script host_key_validation log_line_cap node_id proxy \
+                   set_password setup_password_prompt tunnel_http_cap unlock; do
+            echo "::group::test_$t"
+            python "tests/test_$t.py" || { echo "::error::test_$t failed"; fail=1; }
+            echo "::endgroup::"
+          done
+          exit $fail
+
+  lab:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - run: pip install -e .
+      - name: sshd
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends openssh-server > /dev/null
+      - name: End-to-end lab (sshd + gateway + the tests of tests/README.md)
+        env:
+          PYTHON: python
+        run: .github/ci/lab.sh
